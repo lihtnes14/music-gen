@@ -1,29 +1,32 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from audiocraft.models import MusicGen
 import torch
 import torchaudio
-import numpy
-import base64
 import os
-import streamlit as st
+
+app = FastAPI()
+
+class MusicRequest(BaseModel):
+    prompt: str
+    duration: int
 
 def load_model():
     model = MusicGen.get_pretrained("small")
     return model
 
-def generate_tensor(prompt,duration):
+def generate_tensor(prompt, duration):
     model = load_model()
     model.set_generation_params(
-        use_sampling = True,
-        top_k = 200,
-        duration = duration,
+        use_sampling=True,
+        top_k=200,
+        duration=duration,
     )
-
     output = model.generate(
-        descriptions = [prompt],
-        progress = True,
-        return_tokens = True
+        descriptions=[prompt],
+        progress=True,
+        return_tokens=True
     )
-
     return output[0]
 
 def save(samples: torch.Tensor):
@@ -44,23 +47,13 @@ def save(samples: torch.Tensor):
         except Exception as e:
             print(f"Failed to save audio at {audio_path}: {e}")
 
-st.set_page_config(
-    page_icon = "",
-    page_title = "Music Generator"
-)
+    return audio_path
 
-def main():
-    st.title("Text to Music")
-    prompt = st.text_area("Enter your description")
-    duration = st.slider('Select Duration (seconds):', min_value=2, max_value=10, value=5)
-
-    if st.button("Generate"):
-        music_tensor  = generate_tensor(prompt, duration)
-        save_music_file = save(music_tensor)
-        filepath = "audiocraft/audio0.wav"
-        audio_file = open(filepath, "rb")
-        audio_bytes = audio_file.read()
-        st.audio(audio_bytes)
-
-if __name__ == "__main__":
-    main()
+@app.post("/generate")
+def generate_music(request: MusicRequest):
+    try:
+        music_tensor = generate_tensor(request.prompt, request.duration)
+        audio_path = save(music_tensor)
+        return {"audio_path": audio_path}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
