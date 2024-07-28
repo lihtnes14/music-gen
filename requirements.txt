@@ -1,4 +1,7 @@
-streamlit==1.12.0
-torch==1.12.1
-torchaudio==0.12.1
+streamlit==1.22.0  # Latest compatible version as of now
+torch==2.4.0  # Check the latest version compatible with Python 3.11
+uvicorn==0.22.0
+fastapi==0.95.0
 audiocraft
+requests
+pydantic
